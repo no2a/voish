@@ -1,0 +1,23 @@
+[project]
+name = "voish"
+version = "0.0.1"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dynamic = ["dependencies", "optional-dependencies"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+
+[tool.setuptools.dynamic.dependencies]
+file = ["requirements.txt"]
+
+[tool.setuptools.dynamic.optional-dependencies]
+dev = {file = ["requirements-dev.txt"]}
+
+[project.scripts]
+voish = "voish:main"
