@@ -104,13 +104,13 @@ def _submain(config, samplerate):
                 continue
             print()
             prompt = True
-            command = text.replace(' ', '')
-            print('recognized `%s` as command `%s`' % (text, command), end='')
-            c = config["commands"].get(command)
-            if not c:
-                print(' -> not found')
+            print('recognized `%s`' % (text, ), end='')
+            command = find_keywords(config["commands"].keys(), text)
+            if not command:
+                print(' -> no command matched')
                 continue
-            print(' -> found %s' % (c, ))
+            c = config["commands"][command]
+            print(' -> command matched: %s %s' % (command, c))
             if c.get('again'):
                 if last_command:
                     print('ok, run the last command again', '`%s`' % last_command)
