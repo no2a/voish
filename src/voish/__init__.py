@@ -8,6 +8,7 @@
 
 import argparse
 import json
+import os
 import queue
 import subprocess
 import sys
@@ -61,8 +62,24 @@ def run(cmd) -> int:
     return p.returncode
 
 
+def find_keywords(keywords, text):
+    text = text.replace(' ', '')
+    for i in keywords:
+        if i in text:
+            return i
+    return None
+
+
+def load_model(c):
+    if 'path' in c:
+        model = Model(model_path=os.path.expanduser(c['path']))
+    else:
+        model = Model(lang=c['lang'])
+    return model
+
+
 def _submain(config, samplerate):
-    model = Model(lang=config['model'])
+    model = load_model(config['model'])
     words = json.dumps(list(config['commands'].keys()))
     print('available commands:', list(config['commands'].keys()))
     if config.get('grammar'):
