@@ -114,7 +114,10 @@ def main():
     with open(args.config) as f:
         config = yaml.safe_load(f)
     d = sd.query_devices(args.device, "input")
-    _submain(config, d["default_samplerate"])
+    try:
+        _submain(config, d["default_samplerate"])
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == '__main__':
