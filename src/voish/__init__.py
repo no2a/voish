@@ -79,51 +79,74 @@ def load_model(c):
 
 
 def _submain(config, samplerate):
-    model = load_model(config['model'])
-    words = json.dumps(list(config['commands'].keys()))
+    recs = []
+    for cm in config['models']:
+        model = load_model(cm)
+        words = json.dumps(list(config['commands'].keys()))
+        if config.get('grammar'):
+            recs.append(KaldiRecognizer(model, samplerate, words))
+        else:
+            recs.append(KaldiRecognizer(model, samplerate))
     print('available commands:', list(config['commands'].keys()))
-    if config.get('grammar'):
-        rec = KaldiRecognizer(model, samplerate, words)
-    else:
-        rec = KaldiRecognizer(model, samplerate)
     last_command = None
     prompt = True
     with sd.InputStream(dtype="int16", channels=1, callback=callback):
         while True:
-            if prompt:
-                print('\n> ', end='')
-                prompt = False
-            data = q.get()
-            if rec.AcceptWaveform(data):
-                r = rec.Result()
-            else:
-                r = rec.PartialResult()
-            j = json.loads(r)
-            text = j.get('text')
-            if not text:
-                continue
-            print()
-            prompt = True
-            print('recognized `%s`' % (text, ), end='')
-            command = find_keywords(config["commands"].keys(), text)
-            if not command:
-                print(' -> no command matched')
-                continue
-            c = config["commands"][command]
-            print(' -> command matched: %s %s' % (command, c))
-            if c.get('again'):
-                if last_command:
-                    print('ok, run the last command again', '`%s`' % last_command)
-                    c = config["commands"][last_command]
-                    command = last_command
-                else:
-                    print('command does not run yet')
-                    c = None
-            if c:
-                print('running command:', c['args'])
-                rc = run(c)
-                print('rc: %s' % rc)
-                last_command = command
+            prompt, last_command = _in_loop(prompt, last_command, recs, config)
+
+
+def put_data_get_text(rec, data):
+    if rec.AcceptWaveform(data):
+        r = rec.Result()
+    else:
+        r = rec.PartialResult()
+    j = json.loads(r)
+    text = j.get('text')
+    return text
+
+
+def find_command_in_text(text_list, commands):
+    for text in text_list:
+        command = find_keywords(commands.keys(), text)
+        if command:
+            break
+    if not command:
+        return None, None
+    return command, commands[command]
+
+
+def _in_loop(prompt, last_command, recs, config):
+    if prompt:
+        print('> ', end='')
+        prompt = False
+    data = q.get()
+    text_list = []
+    for rec in recs:
+        if text := put_data_get_text(rec, data):
+            text_list.append(text)
+    if not text_list:
+        return prompt, last_command
+    print('recognized %s' % (text_list, ), end='')
+    prompt = True
+    command, c = find_command_in_text(text_list, config['commands'])
+    if not command:
+        print(' -> no command matched')
+        return prompt, last_command
+    print(' -> command matched: %s %s' % (command, c))
+    if c.get('again'):
+        if last_command:
+            print('ok, run the last command again', '`%s`' % last_command)
+            c = config["commands"][last_command]
+            command = last_command
+        else:
+            print('command does not run yet')
+            c = None
+    if c:
+        print('running command:', c['args'])
+        rc = run(c)
+        print('rc: %s' % rc)
+        last_command = command
+    return prompt, last_command
 
 
 def main():
