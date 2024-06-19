@@ -28,7 +28,7 @@ srt==3.5.3
     # via vosk
 tqdm==4.66.2
     # via vosk
-urllib3==2.2.1
+urllib3==2.2.2
     # via requests
 vosk==0.3.44
     # via -r requirements.in
